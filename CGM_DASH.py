@@ -131,8 +131,13 @@ def perform_analysis(glucose):
     
     food_d=glucose[glucose['Event type / Notif type'].notnull()] 
     
- 
-       
+    from pandas import DateOffset
+
+# create DateOffset object with 2 hours and 30 minutes
+    offset = DateOffset(hours=2, minutes=30)
+
+# add DateOffset to datetime column
+    glucose['time_minuts'] = glucose['Actual time'].dt.minute  
     
     #time_spent _ingroup=
     
@@ -290,6 +295,12 @@ def perform_analysis(glucose):
 
     CGM_index_Score= str(np.round(CGM_index_Score,3))
     avgtinspike = f'{average_time_spent_in_peaks} Min'
+    
+    # Define a threshold for what constitutes a spike
+
+    
+    
+
 
     #Add Start end date to dashboard
     dt1,  dt2,  dt3, dt4 = st.columns((1, 1, 1, 1))
@@ -308,8 +319,6 @@ def perform_analysis(glucose):
     dt3.write(date3)
     dt4.markdown('**:blue[Human Edge Score]**')
     dt4.write(CGM_index_Score)
-    
-    st.markdown("""---""")
     
     grop1 = len(glucose[glucose['Glucose reading'].between(161,250)])
     grop2 = len(glucose[glucose['Glucose reading'].between(111,160)])
@@ -397,16 +406,19 @@ def perform_analysis(glucose):
     
     import pandas as pd
     df = pd.DataFrame(dict(
-        score=[ TINR_score, average_time_spent_in_peaks_score,spikeperday_score, avg_glucose_score, day_glucose_score, night_glucose_score],
-        metric=['Percent time inside range 70-110', 'Average Time in spike', 'spikes in a day score' ,'Highest glucose reading per day', 'day glucose reading score', 'night glucose reading score'
+        score=[Average_peaks_eachday_Score, TINR_score, average_time_spent_in_peaks_score
+             , ATtoFloorfrom_PeakR_score, AvgMax_in_peak_Score,average_bg_Score],
+        metric=['Daily Average spike (>110)',
+                'Percent time inside range 70-110', 'Average Time in spike', 'Average time to Peak',
+                'Average Maximum in each peak','Average Blood Glucose'
                 ]))
-
 
 
 
 
     #Redarfig = px.scatter(df, y='score', x='metric',  size_max=60)
     Redarfig = px.line_polar(df, r='score', theta='metric', line_close=True)
+    st.markdown("""---""")
     
 
     st.subheader("Metrices Score :")
@@ -431,19 +443,25 @@ def perform_analysis(glucose):
     figz.update_traces(textposition= 'inside', textinfo= 'percent+label', hole=.5)
     figz.update_layout(title_font_size = 42, autosize=False, width=500, height=500, margin=dict(l=10, r=10, t=20, b=5) )
     colpie.plotly_chart(figz)
+    
+    avg_glucoseV="{}mg/dL".format(avg_glucose)
+    night_averageGV="{}mg/dL".format(night_averageG)
+    day_averageGV="{}mg/dL".format(day_averageG)
+    high_glucoseV="{}mg/dL".format(high_glucose)
+    low_glucoseV="{}mg/dL".format(low_glucose)
     #source = data.seattle_weather()
     colval.markdown('Average glucose')
-    colval.subheader(avg_glucose)
-    colval.markdown('Average at night')
-    colval.subheader(night_averageG)
-    colval.markdown('Average at night')
-    colval.subheader(day_averageG)
+    colval.subheader(avg_glucoseV)
+    colval.markdown('Average at Day')
+    colval.subheader(day_averageGV)
+    colval.markdown('Average at Night')
+    colval.subheader(night_averageGV)
     colval.markdown('''Max glucose reading 
                   in time period:''')
-    colval.subheader(high_glucose)            
+    colval.subheader(high_glucoseV)            
     colval.markdown('''Min glucose reading 
                   in time period:''')
-    colval.subheader(low_glucose)               
+    colval.subheader(low_glucoseV)               
     st.markdown("""---""")
     
     
@@ -608,15 +626,26 @@ def perform_analysis(glucose):
               
          st.altair_chart(bar_rounded2 , theme=None, use_container_width=True ) 
 
-    
+    ADA_HbA1c="{}%".format(ADA_HbA1c)
+    pTIR="{}Min".format(pTIR) 
+    ATtoFloorfrom_Peak="{}Min".format(ATtoFloorfrom_Peak)
+    ATtoTopfrom_base="{}Min".format(ATtoTopfrom_base)
+    average_bg="{}Min".format(average_bg)
+    AvgMax_in_peak="{}Min".format(AvgMax_in_peak)    
+
+
+
+
+
+
     tab1, tab2 = st.tabs(["HbA1", "Spike"])
     with tab1:
          gm2, gm3, gm4  = st.columns((1, 1, 1))
-         gm2.metric("American Diabetes Association-HbA1c", ADA_HbA1c )
+         gm2.metric("American Diabetes Association-HbA1c", ADA_HbA1c)
          gm3.metric("Percent time inside range 70-110mg/dL", pTIR )
-         gm4.metric("Average time to Peak (Min)", ATtoFloorfrom_Peak )
+         gm4.metric("Average time to Peak", ATtoFloorfrom_Peak )
          
-         gm2.metric("Average time to baseline (Min)", ATtoTopfrom_base )
+         gm2.metric("Average time to baseline ", ATtoTopfrom_base )
          gm3.metric("Average BG", average_bg)
          #gm1.markdown('**Glucose management index-HbA1c**')
          #gm1.subheader(GMI_HbA1c)
@@ -633,13 +662,9 @@ def perform_analysis(glucose):
         st.header("Spikes Average Calculation")
         pm1, pm2, pm3 = st.columns((1, 1, 1))
 
-        pm1.markdown('**Average daily spikes (>110 mg/dL)**')
-        pm1.subheader(Average_peaks_eachday)
-
-        pm2.markdown('**Average Max BG in spike**')
-        pm2.subheader(AvgMax_in_peak)
-        pm3.markdown('**Average time in spike (min)**')
-        pm3.subheader(avgtinspike)
+        pm1.metric('Average daily spikes (>110 mg/dL)', Average_peaks_eachday)
+        pm2.metric('Average Max BG in spike', AvgMax_in_peak)
+        pm3.metric('Average time in spike (min)', avgtinspike)
 
         st.markdown("""---""")
         with st.expander(" **Time Spent in Spike**"):
